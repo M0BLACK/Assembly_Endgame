@@ -1,6 +1,0 @@
-# .gitIgnore
-.git
-node_modules
-dist
-coverage
-.env
