@@ -1,23 +1,25 @@
 import { useState } from 'react'
 import {languages } from './languages'
 import clsx from 'clsx'
+import { getFarewellText, gameWord } from './utils'
+import Confetti from 'react-confetti'
 
 function App() {
   // state variables
-  const [word, setWord] = useState('react')
+  const [word, setWord] = useState(() => gameWord())
   const [guessLetters, setGuessLetters] = useState([])
 
   // derived variables
   const wrongGuessCount = guessLetters.filter((letter) => !word.includes(letter)).length
-  // static variables
-  const alphabet = 'abcdefghijklmnopqrstuvwxyz'
   const gameWin = word.split('').every((letter) => guessLetters.includes(letter));
   const gameLose = wrongGuessCount >= languages.length - 1
   const gameOver = gameWin || gameLose
-
-
-  const gameStatus = [] ;
   
+  // static variables
+  const alphabet = 'abcdefghijklmnopqrstuvwxyz'
+
+
+
   function handleClick(letter) {
     if (!gameOver)
     {
@@ -27,23 +29,23 @@ function App() {
     }
   } 
   const lettersElements = word.split('').map((letter, index) => {
+    const className = clsx(!guessLetters.includes(letter) && gameLose ? 'wrong-letters' : '')
     return (
-      <span key={index}>
-        {guessLetters.includes(letter) || wrongGuessCount === 8 ? letter.toUpperCase() : ''}
+      <span key={index} className={className}>
+        {guessLetters.includes(letter) || gameLose ? letter.toUpperCase() : ''}
       </span>
     )
   })
   
   const languageElements =  languages.map((language, index) => {
     
-    const isLost = index < wrongGuessCount
-    const className = clsx(isLost &&'lost')
+    const isLangLost = index < wrongGuessCount
+    const className = clsx(isLangLost &&'lost')
     
     const styles = {
       backgroundColor: language.backgroundColor, 
-      color: language.color}
-    
-    index < wrongGuessCount  && gameStatus.push(language.name)
+      color: language.color
+    }
 
     return (
       <span key={language.name} className={className}  
@@ -63,7 +65,13 @@ function App() {
     })
 
     return (
-      <button className={className} key={letter} onClick={() => handleClick(letter)}>
+      <button 
+        className={className}
+        key={letter}
+        onClick={() => handleClick(letter)}
+        disabled={gameOver}
+        aria-label={letter}
+        >
         {letter.toUpperCase()}
       </button>
     )
@@ -71,18 +79,18 @@ function App() {
 
 
   const className = clsx('game-status',{
-                                        'wrong-guess': !gameOver && wrongGuessCount > 0,
+                                        'wrong-guess': !gameOver && wrongGuessCount > 0 && !word.includes(guessLetters[guessLetters.length - 1]),
                                         'game-over': gameLose, 
                                         'win': gameWin
                                       }
                         )
   
-  
   function renderStats() {
     if (!gameOver && wrongGuessCount > 0)
       return (
+          !word.includes(guessLetters[guessLetters.length - 1]) &&
         <p>
-          {`“Farewell ${gameStatus.join(" & ")}“🫡`}
+          {getFarewellText(languages[wrongGuessCount - 1].name)}
         </p>
       )
     else if (gameLose)
@@ -101,14 +109,22 @@ function App() {
       )
     
   }
+
   return (
     <main>
+      {
+        gameWin && 
+        <Confetti 
+          recycle={false}
+          numberOfPieces={1000}
+        />
+      }
       <header>
         <h1>Assembly: Endgame</h1>
         <p>
             Guess the word in under 8 attempts to keep the programming world safe from Assembly!
         </p>
-        <div className={className}>
+        <div className={className} aria-live='polite' role='status'>
           {renderStats()}
         </div>
       </header>
@@ -125,7 +141,14 @@ function App() {
       </section>
       {
         gameOver &&
-        <button className="new-game" onClick={() => setGuessLetters([]) }>New Game</button>
+        <button className="new-game" 
+        onClick={() => {
+          setGuessLetters([]) 
+          setWord(gameWord)}
+          }
+          >
+          New Game
+        </button>
       }
     </main>
   )
